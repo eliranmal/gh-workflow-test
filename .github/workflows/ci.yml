@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  install:
+    name: ${{ matrix.os }} - Install - Node ${{ matrix.node-version }}
+    concurrency:
+      group: install-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os }}-${{ matrix.node-version }}
+      cancel-in-progress: true
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [22.x]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Check uncommitted changes
+        if: ${{ always() }}
+        # Check that Git working tree is clean after running `install` command.
+        # The `git` command exits with 1 and fails the build if there are any uncommitted changes.
+        run: git diff HEAD --exit-code
+  build:
+    name: ${{ matrix.os }} - Build - Node ${{ matrix.node-version }}
+    concurrency:
+      group: build-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os }}-${{ matrix.node-version }}
+      cancel-in-progress: true
+    needs: install
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [22.x]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
