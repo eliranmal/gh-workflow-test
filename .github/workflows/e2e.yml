@@ -11,7 +11,7 @@ jobs:
     name: E2E - ${{ matrix.os }} - Install - Node ${{ matrix.node-version }}
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     concurrency:
-      group: e2e-install-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os }}-${{ matrix.node-version }}
+      group: e2e-install-${{ github.event_name }}-${{ github.head_branch }}-${{ matrix.os }}-${{ matrix.node-version }}
       cancel-in-progress: true
     strategy:
       matrix:
@@ -34,7 +34,7 @@ jobs:
     name: E2E - ${{ matrix.os }} - e2e Tests - Node ${{ matrix.node-version }}
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     concurrency:
-      group: e2e-test-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os }}-${{ matrix.node-version }}
+      group: e2e-test-${{ github.event_name }}-${{ github.head_branch }}-${{ matrix.os }}-${{ matrix.node-version }}
       cancel-in-progress: true
     strategy:
       matrix:
