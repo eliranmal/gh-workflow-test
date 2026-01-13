@@ -1,72 +1,19 @@
 name: e2e CI
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
-  push:
-    branches:
-      - 'main'
+#  pull_request_target:
+#    types: [opened, synchronize, reopened, ready_for_review]
+#  push:
+#    branches:
+#      - 'main'
+  repository_dispatch:
+    types: [e2e-trigger]
 
 jobs:
-  check-ci-status:
-    name: Check CI Status
-    runs-on: ubuntu-latest
-    outputs:
-      ci_passed: ${{ steps.check.outputs.ci_passed }}
-    steps:
-      - name: Wait for CI workflow to complete
-        id: check
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const maxAttempts = 30;
-            const delayMs = 10000; // 10 seconds
-            
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-              const { data: runs } = await github.rest.actions.listWorkflowRuns({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: 'ci.yml',
-                head_sha: context.payload.pull_request.head.sha,
-                per_page: 1
-              });
-              
-              if (runs.workflow_runs.length === 0) {
-                core.info(`Attempt ${attempt}: No CI workflow runs found yet, waiting...`);
-                if (attempt < maxAttempts) {
-                  await new Promise(resolve => setTimeout(resolve, delayMs));
-                  continue;
-                }
-                core.setOutput('ci_passed', 'false');
-                return;
-              }
-              
-              const latestRun = runs.workflow_runs[0];
-              core.info(`Attempt ${attempt}: CI workflow status: ${latestRun.status}, conclusion: ${latestRun.conclusion}`);
-              
-              if (latestRun.status === 'completed') {
-                const ciPassed = latestRun.conclusion === 'success';
-                core.setOutput('ci_passed', ciPassed.toString());
-                return;
-              }
-              
-              if (attempt < maxAttempts) {
-                core.info(`CI workflow still running, waiting ${delayMs/1000}s before next check...`);
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-              }
-            }
-            
-            core.setOutput('ci_passed', 'false');
-            core.setFailed('CI workflow did not complete within the timeout period');
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   install:
     name: E2E - ${{ matrix.os }} - Install - Node ${{ matrix.node-version }}
-    needs: check-ci-status
-    if: needs.check-ci-status.outputs.ci_passed == 'true'
     concurrency:
-      group: e2e-install-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os }}-${{ matrix.node-version }}
+      group: e2e-install-${{ github.event.client_payload.pr_number }}-${{ matrix.os }}-${{ matrix.node-version }}
       cancel-in-progress: true
     strategy:
       matrix:
@@ -77,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.client_payload.pr_head_sha }}
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
@@ -88,10 +35,8 @@ jobs:
 
   e2e-test:
     name: E2E - ${{ matrix.os }} - e2e Tests - Node ${{ matrix.node-version }}
-    needs: check-ci-status
-    if: needs.check-ci-status.outputs.ci_passed == 'true'
     concurrency:
-      group: e2e-test-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os }}-${{ matrix.node-version }}
+      group: e2e-test-${{ github.event.client_payload.pr_number }}-${{ matrix.os }}-${{ matrix.node-version }}
       cancel-in-progress: true
     strategy:
       matrix:
@@ -102,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.client_payload.pr_head_sha }}
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
