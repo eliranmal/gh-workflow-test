@@ -8,41 +8,12 @@ on:
       - 'main'
 
 jobs:
-  install:
-    name: CI - ${{ matrix.os }} - Install - Node ${{ matrix.node-version }}
-    concurrency:
-      group: install-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os }}-${{ matrix.node-version }}
-      cancel-in-progress: true
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node-version: [22.x]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-      - name: Check uncommitted changes
-        if: ${{ always() }}
-        run: git diff HEAD --exit-code
   build:
-    name: CI - ${{ matrix.os }} - Build - Node ${{ matrix.node-version }}
-    concurrency:
-      group: build-${{ github.event_name }}-${{ github.head_ref }}-${{ matrix.os }}-${{ matrix.node-version }}
-      cancel-in-progress: true
-    needs: install
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node-version: [22.x]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
+    name: CI - Build
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22.x
