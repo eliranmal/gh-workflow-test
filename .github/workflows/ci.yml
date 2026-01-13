@@ -52,6 +52,16 @@ jobs:
     if: success() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      - name: Debug secret
+        run: |
+          if [ -z "${{ secrets.PAT_TOKEN }}" ]; then
+            echo "ERROR: PAT_TOKEN secret is empty or not accessible"
+            exit 1
+          else
+            echo "PAT_TOKEN secret exists (length: ${#PAT_TOKEN})"
+          fi
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
       - name: Dispatch e2e workflow
         uses: actions/github-script@v7
         with:
