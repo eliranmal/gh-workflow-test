@@ -1,19 +1,19 @@
 name: e2e CI
 
 on:
-#  pull_request_target:
-#    types: [opened, synchronize, reopened, ready_for_review]
-#  push:
-#    branches:
-#      - 'main'
-  repository_dispatch:
-    types: [e2e-trigger]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - '**'
 
 jobs:
   install:
     name: E2E - ${{ matrix.os }} - Install - Node ${{ matrix.node-version }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     concurrency:
-      group: e2e-install-${{ github.event.client_payload.pr_number }}-${{ matrix.os }}-${{ matrix.node-version }}
+      group: e2e-install-${{ github.event.workflow_run.head_branch }}-${{ matrix.os }}-${{ matrix.node-version }}
       cancel-in-progress: true
     strategy:
       matrix:
@@ -24,7 +24,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.client_payload.pr_head_sha }}
+          ref: ${{ github.event.workflow_run.head_branch }}
+      - name: Get PR SHA
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${github.event.workflow_run.head_branch}`,
+              state: 'open'
+            });
+            if (prs.length > 0) {
+              core.setOutput('sha', prs[0].head.sha);
+            } else {
+              core.setOutput('sha', github.event.workflow_run.head_sha);
+            }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
@@ -35,8 +54,9 @@ jobs:
 
   e2e-test:
     name: E2E - ${{ matrix.os }} - e2e Tests - Node ${{ matrix.node-version }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
     concurrency:
-      group: e2e-test-${{ github.event.client_payload.pr_number }}-${{ matrix.os }}-${{ matrix.node-version }}
+      group: e2e-test-${{ github.event.workflow_run.head_branch }}-${{ matrix.os }}-${{ matrix.node-version }}
       cancel-in-progress: true
     strategy:
       matrix:
@@ -47,7 +67,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.client_payload.pr_head_sha }}
+          ref: ${{ github.event.workflow_run.head_branch }}
+      - name: Get PR SHA
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${github.event.workflow_run.head_branch}`,
+              state: 'open'
+            });
+            if (prs.length > 0) {
+              core.setOutput('sha', prs[0].head.sha);
+            } else {
+              core.setOutput('sha', github.event.workflow_run.head_sha);
+            }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.sha }}
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
