@@ -9,6 +9,21 @@ on:
       - '**'
 
 jobs:
+  debug-trigger:
+    name: Debug - Check if workflow_run triggered
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log all event data
+        run: |
+          echo "Event received: ${{ github.event_name }}"
+          echo "Workflow run ID: ${{ github.event.workflow_run.id }}"
+          echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+          echo "Workflow run event: ${{ github.event.workflow_run.event }}"
+          echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "Workflow run head SHA: ${{ github.event.workflow_run.head_sha }}"
+          echo "Workflow run repository: ${{ github.event.workflow_run.repository.full_name }}"
+          echo "Workflow run actor: ${{ github.event.workflow_run.actor.login }}"
+
   check-ci:
     name: Check CI Status
     runs-on: ubuntu-latest
